@@ -9,6 +9,7 @@ from flask_socketio import SocketIO,emit,disconnect
 import MySQLdb
 import json,requests
 
+
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
 # the best option based on installed packages.
@@ -20,28 +21,40 @@ socketio = SocketIO(app,async_mode=async_mode)
 thread = None
 thread_lock = Lock()
 
-#start = -5
-#stop = 5
 
-url = requests.get("http://192.168.1.52/cm?cmnd=status%2010")
-text = url.text
 
-read_ser = json.loads(text)
+start = -5
+stop = 5
 
-print(read_ser["StatusSNS"]["AM2301"]["Temperature"])
-print(type(read_ser))
+
+
+#print(read_ser["StatusSNS"]["AM2301"]["Temperature"]["Humidity"],parse_float=int)
+
 
 
 def background_thread(args):
+
+    temp_on = 25
     count = 0
     dataCounter = 0
     dataList = []
+    run_state = 0
+    relay_state = 0
+    temp_hys = 0.5
 
     # TODO DB
     db = MySQLdb.connect(host="localhost",user="root",passwd="Krusovice200*",db="poitDatabase")
     dbV = dict(args).get('btn_value')
 
     while True:
+
+        url = requests.get("http://192.168.1.52/cm?cmnd=status%2010")
+
+        jparse = json.loads(url.text)
+
+        temp_acc = (jparse["StatusSNS"]["AM2301"]["Temperature"])
+        hum_acc = (jparse["StatusSNS"]["AM2301"]["Humidity"])
+
         socketio.sleep(1)
         count += 1
 
@@ -61,22 +74,60 @@ def background_thread(args):
         print(type(args.get("event")['value']))
         dbV = str(args)
 
-        print(read_ser["StatusSNS"]["AM2301"]["Temperature"])
+        print(temp_acc)
+        print(hum_acc)
         print(dbV)
 
         if args.get("event")['value'] == '1':
+            run_state = 1
+
+
+        if args.get("event")['value'] == '2':
+            run_state = 2       #stop stav je run_state 2
+
+
+        if run_state == 1:
             dataDict = {
+                "x": dataCounter,
+                "y": temp_acc}
+            dataList.append(dataDict)
+
+            if(float(temp_acc) <= temp_on):
+                requests.get("http://192.168.1.141/cm?cmnd=Power%20ON")
+                relay_state = 1
+                print("RelayON")
+
+            else:#(float(temp_acc)+temp_hys >= temp_on):
+                requests.get("http://192.168.1.141/cm?cmnd=Power%20OFF")
+                relay_state = 0
+                print("RelayOFF")
+
+            socketio.emit('my_response',
+                          {'data': temp_acc,'count': count})
+            socketio.emit('my_response',
+                          {'data': hum_acc,'count': count})
+
+
+
+        if run_state == 2:
+            print("Konéc")
+        if run_state == 0:
+            print("No data")
+"""
+
+ dataDict = {
                 "x": dataCounter,
                 "y": read_ser["StatusSNS"]["AM2301"]["Temperature"]}
             dataList.append(dataDict)
 
             socketio.emit('my_response',
                           {'data': read_ser["StatusSNS"]["AM2301"]["Temperature"],'count': count})
-        elif args.get("event")['value'] == '0':
-            print("db a subor")
-            dataList = []
-            dataCounter = 0
 
+
+        if args.get("event")['value'] == '1':
+            run_state = 1
+        elif args.get("event")['value'] == '0':
+"""
 
 @app.route('/')
 def index():
@@ -139,13 +190,15 @@ def click_eventStart(message):
     session["event"] = {'value': '1'}
     print(session['event'])
     print(session)
+    print("Vzkonal sa prvý session")
 
 
 @socketio.event
 def click_eventStop(message):
-    session["event"] = {'value': '0'}
+    session["event"] = {'value': '2'}
     print(session['event'])
     print(session)
+    print("Vzkonal sa druhy session")
 
 
 @socketio.event

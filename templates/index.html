@@ -37,7 +37,7 @@
             // section of the page.
             socket.on('my_response', function(msg, cb) {
                 $('#log').append('<br>' + $('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
-
+/*
                 if(!isNaN(msg.data))
                     xtemperature.push(msg.data)
                     xtime.push(msg.count)
@@ -51,7 +51,7 @@
 
                     Plotly.newPlot('plotdiv', data);
                     gauge.value=msg.data
-
+*/
                 if (cb)
                     cb();
 
@@ -173,7 +173,7 @@
       Average ping/pong latency: <b><span id="ping-pong"></span>ms</b>
     </p>
     <h2>Regulation of temperature:</h2>
-    <button id="buttonValStart" type="submit" value=1>Start regulation</button>
+    <button id="buttonValStart" type="submit" value=2>Start regulation</button>
     <button id="buttonValStop" type="submit" value=0>Stop regulation</button>
     <form id="disconnect" method="POST" action="#">
         <input type="submit" value="Disconnect">

@@ -1,4 +1,4 @@
-#Regulácia teploty pomocou inteligentnej zásuvky#
+# Regulácia teploty pomocou inteligentnej zásuvky
 
-##Spustenie regulácie##
+## Spustenie regulácie
 Sa začína stlačením tlačidla "Start Regulation" vo webovom rozhraní
